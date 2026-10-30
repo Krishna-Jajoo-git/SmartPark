@@ -194,6 +194,7 @@ cd backend
 ## 📄 Documentation Reference
 
 For more comprehensive guides, check the `documentation/` directory:
+- [ANDROID_EMULATOR_GUIDE.md](documentation/ANDROID_EMULATOR_GUIDE.md) — Dedicated Android Emulator execution and debugging guide.
 - [RUN_GUIDE.md](documentation/RUN_GUIDE.md) — Complete execution instructions for Web, Docker, and Android Studio.
 - [SETUP_GUIDE.md](documentation/SETUP_GUIDE.md) — Detailed software prerequisites and troubleshooting guide.
 - [ARCHITECTURE.md](documentation/ARCHITECTURE.md) — Deep dive into DB schema, concurrency locks, and fare calculations.
