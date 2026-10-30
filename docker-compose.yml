@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartpark-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smartpark
+      POSTGRES_USER: smartpark
+      POSTGRES_PASSWORD: smartpark_secret
+    ports:
+      # Map to 5433 on host to avoid conflicting with existing host postgres on 5432
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - smartpark-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartpark -d smartpark"]
+      interval: 4s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartpark-backend
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/smartpark
+      DB_USERNAME: smartpark
+      DB_PASSWORD: smartpark_secret
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartpark-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  smartpark-db-data:
