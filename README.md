@@ -159,5 +159,3 @@ All API endpoints can be tested directly without any UI or Postman installation 
 
 ## 📄 License
 Licensed under Apache 2.0. Built for production-ready smart parking operations.
-#   S m a r t P a r k  
- 
