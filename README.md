@@ -1,17 +1,27 @@
-# SmartPark — Smart Parking Management System
+# 🚗 SmartPark — Enterprise Smart Parking Management System
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://adoptium.net)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2F17-blue.svg)](https://www.postgresql.org)
-[![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB.svg)](https://reactnative.dev)
-[![Expo](https://img.shields.io/badge/Expo-51.0-black.svg)](https://expo.dev)
-[![Tests](https://img.shields.io/badge/Tests-38%20Passed-success.svg)]()
+<div align="center">
 
-**SmartPark** is a production-quality, full-stack Smart Parking Management System engineered for enterprise facilities. It features transactional slot allocation, pessimistic locking to prevent double bookings, real-time accrued billing, simulated payment receipts, and automated revenue analytics.
+[![Java 21](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net)
+[![Spring Boot 3.3.4](https://img.shields.io/badge/Spring_Boot-3.3.4-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![React Native](https://img.shields.io/badge/React_Native-0.74-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev)
+[![Expo 51](https://img.shields.io/badge/Expo-51.0-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
+[![Tests Passing](https://img.shields.io/badge/Tests-38%20Passed-success?style=for-the-badge&logo=checkmarx&logoColor=white)](#-automated-testing-suite)
+[![Docker Ready](https://img.shields.io/badge/Docker-Compose_Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](#-quick-start-with-docker)
+
+<p align="center">
+  <b>A production-grade, full-stack Smart Parking Management System designed for enterprise facilities.</b><br>
+  Featuring transactional slot allocation, database-level pessimistic locking, real-time accrued fare billing, automated analytics, and a cross-platform mobile & web client.
+</p>
+
+[Quick Start](#-quick-start-with-docker) • [Native Setup](#-alternative-running-natively-without-docker) • [Architecture](#-key-features--business-rules) • [API Reference](#-api-endpoints-summary) • [Testing](#-automated-testing-suite)
+
+</div>
 
 ---
 
-## 🏛️ Repository Structure
+## 🏛️ Repository Architecture
 
 ```
 SmartPark/
@@ -22,7 +32,7 @@ SmartPark/
 │   │   │   ├── java/com/SmartPark/
 │   │   │   │   ├── config/              # OpenApiConfig, CorsConfig
 │   │   │   │   ├── controller/          # SlotController, BookingController, PaymentController, AnalyticsController
-│   │   │   │   ├── dto/                 # BookingRequest, Responses, ErrorResponse
+│   │   │   │   ├── dto/                 # BookingRequest, Response DTOs, ErrorResponse
 │   │   │   │   ├── entity/              # ParkingSlot, Booking, Payment, Enums
 │   │   │   │   ├── exception/           # Custom Exceptions & GlobalExceptionHandler
 │   │   │   │   ├── repository/          # JpaRepositories with Pessimistic Locking
@@ -32,10 +42,11 @@ SmartPark/
 │   │   │       ├── application.properties
 │   │   │       └── db/migration/        # Flyway V1 (Schema) and V2 (25 Seed Slots)
 │   │   └── test/                        # 38 JUnit 5 + Mockito Unit & Integration Tests
+│   ├── Dockerfile                       # Multi-stage Eclipse Temurin JDK 21 build
 │   ├── pom.xml
 │   ├── mvnw / mvnw.cmd
 │   └── .env.example
-├── frontend/                            # React Native with Expo Mobile Application
+├── frontend/                            # React Native with Expo (Web + Android)
 │   ├── src/
 │   │   ├── api/                         # Axios client & modular API services
 │   │   ├── components/                  # Header, SlotCard, BookingCard, StatCard, Button, EmptyState
@@ -43,6 +54,7 @@ SmartPark/
 │   │   ├── navigation/                  # Bottom Tab & Native Stack Navigators
 │   │   ├── screens/                     # Dashboard, Slots, Booking, Active, Checkout, Receipt, Analytics
 │   │   └── utils/                       # Currency (INR ₹) & Timestamp formatters
+│   ├── Dockerfile                       # Production web bundle served via Nginx Alpine
 │   ├── App.js
 │   ├── app.json
 │   ├── package.json
@@ -52,89 +64,112 @@ SmartPark/
 │   ├── SETUP_GUIDE.md                   # Environment & Installation Reference
 │   ├── ARCHITECTURE.md                  # Schema, Concurrency Locking, Fare Engine
 │   └── API_DOCUMENTATION.md             # REST API specifications & Swagger guides
-├── RUN_GUIDE.md                         # Quick-access Run Guide at repo root
-├── SmartPark_API_Testing_Manual.docx # Complete Word Document for testing every API
-├── docker-compose.yml                   # PostgreSQL 16 container definition
+├── SmartPark_API_Testing_Manual.docx   # Complete Word Document for testing every API
+├── docker-compose.yml                   # Orchestration for PostgreSQL 16 + Backend + Frontend
 └── README.md
 ```
 
 ---
 
-## ⚡ Key Highlights & Business Rules Implemented
+## ⚡ Key Features & Business Rules
 
-- 🛡️ **Pessimistic Locking & Idempotent Allocation**: Prevents simultaneous double booking using `@Lock(LockModeType.PESSIMISTIC_WRITE)` and transactional boundaries.
-- 🚫 **Vehicle Exclusivity**: A vehicle cannot have multiple active bookings simultaneously.
-- ⏱️ **Accrued Fare Engine**: Dedicated `FareCalculator` adhering strictly to:
+- 🛡️ **Pessimistic Locking & Idempotent Allocation**: Prevents race conditions and double bookings under concurrent check-ins using `@Lock(LockModeType.PESSIMISTIC_WRITE)`.
+- 🚫 **Vehicle Exclusivity**: Strict business invariant ensuring a vehicle number cannot hold multiple active parking bookings simultaneously.
+- ⏱️ **Accrued Tiered Fare Engine**: Implements strict 3-hour tier calculation:
   $$\text{Fare (INR)} = \left\lceil \frac{\text{duration in seconds}}{10800} \right\rceil \times 50$$
-  *(0s costs ₹0; any positive duration costs at least ₹50 per 3-hour block or fraction thereof).*
-- 🔒 **Transactional Consistency**: Slot release, payment persistence, and booking completion are coupled inside `@Transactional` database boundaries.
-- 🌐 **Global UTC Strategy**: Standardized timestamp strategy avoiding timezone ambiguities.
-- 📈 **Auditable Revenue Analytics**: Financial aggregates computed from settled `PAID` records for any given calendar date.
-- 📱 **Mobile UI**: Clean navy-blue theme, emerald green / crimson status indicators, pull-to-refresh, live accrued fares, and ticket receipt screen.
+  - *0s duration costs ₹0.*
+  - *Any positive parking duration costs ₹50 for the initial 3-hour block, plus ₹50 for each subsequent 3-hour block or fraction thereof.*
+- 🔒 **ACID Transaction Boundaries**: Slot release, payment receipt generation, and booking termination occur atomically within `@Transactional` boundaries.
+- 🌐 **Standardized UTC Strategy**: All database entities and API serialization enforce ISO-8601 UTC timestamps (`yyyy-MM-dd'T'HH:mm:ss.SSS'Z'`) to eliminate timezone drift.
+- 📈 **Auditable Financial Analytics**: Real-time aggregation of total revenue, occupied capacity, completed checkouts, and active durations.
+- 📱 **Modern Cross-Platform UI**: Sleek navy-blue palette, live occupancy status badges, pull-to-refresh feeds, and simulated payment receipt slips.
 
 ---
 
-## 🚀 Quick Start Guide (One Command)
+## 🚀 Quick Start with Docker
 
-Run the entire application stack (**PostgreSQL + Spring Boot Backend + React Native Web Frontend**) with a single command:
+Run the entire stack (**PostgreSQL 16 + Spring Boot Backend + React Native Web**) with one command:
 
 ```bash
 docker compose up --build
 ```
 
-That's it! Docker automatically:
-1. Starts **PostgreSQL 16** with health checks (mapped to host port `5433` to prevent conflicts with any existing local PostgreSQL on 5432).
-2. Builds and starts the **Spring Boot 3.3.4 (Java 21)** backend service on port `8080`.
-3. Runs Flyway migrations automatically, creating all schemas and seeding 25 parking spaces.
-4. Builds the **React Native Expo** application bundle and serves it through **Nginx** on port `3000`.
+> **Note**: Be sure to use `docker compose up --build` (or `docker-compose up --build`), not `docker build up`.
 
-### 🌐 Accessing the Services
-- **Web App (Frontend)**: [http://localhost:3000](http://localhost:3000)
-- **REST API Base (Backend)**: [http://localhost:8080/api](http://localhost:8080/api)
-- **Interactive Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-- **OpenAPI Schema**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
-- **PostgreSQL Database**: `localhost:5433` (DB: `SmartPark`, User: `SmartPark`, Password: `SmartPark_secret`)
+### 📦 Services Started:
+1. **PostgreSQL 16 (`smartpark-db`)**: Runs on host port `5433` (preventing conflicts with any existing local PostgreSQL running on `5432`). Health checks ensure backend waits until DB is ready.
+2. **Spring Boot Backend (`smartpark-backend`)**: Runs on port `8080`, executes Flyway migrations automatically, and seeds 25 parking slots.
+3. **React Native Frontend (`smartpark-frontend`)**: Built and served via high-performance Nginx on port `3000`.
+
+### 🌐 Access Points
+| Service | URL | Notes |
+|---|---|---|
+| **Web Frontend** | [http://localhost:3000](http://localhost:3000) | Full responsive mobile/desktop web app |
+| **Backend REST API** | [http://localhost:8080/api](http://localhost:8080/api) | API Base URL |
+| **Interactive Swagger UI** | [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) | Live interactive documentation |
+| **OpenAPI Schema** | [http://localhost:8080/api-docs](http://localhost:8080/api-docs) | JSON OpenAPI schema |
+| **PostgreSQL Database** | `localhost:5433` | DB: `smartpark` • User: `smartpark` • Pass: `smartpark_secret` |
 
 ---
 
 ## 🛠️ Alternative: Running Natively without Docker
 
-### 1. Database
+If you prefer running services directly on your host machine:
+
+### 1. Database (PostgreSQL)
+Start only the database container:
 ```bash
 docker compose up postgres -d
 ```
+*(Or use your own local PostgreSQL instance on port 5432/5433 matching `backend/src/main/resources/application.properties`).*
 
-### 2. Backend (Spring Boot 3.3.4)
+### 2. Backend (Spring Boot 3.3.4, Java 21)
 ```bash
 cd backend
-# Set JAVA_HOME (if not already set in system environment):
+
+# (Optional on Windows PowerShell) Set JAVA_HOME if not already in system path:
 $env:JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-21.0.10.7-hotspot"
 
-# Run the 38 automated tests:
+# Run tests to verify setup:
 .\mvnw.cmd test
 
-# Launch backend server:
+# Launch backend application:
 .\mvnw.cmd spring-boot:run
 ```
 
 ### 3. Frontend (React Native with Expo)
 ```bash
 cd frontend
+
+# Install dependencies:
 npm install --legacy-peer-deps
+
+# Launch web app:
 npx expo start --web
 ```
-*For Android Emulator, requests automatically route to `http://10.0.2.2:8080/api`.*
+> For **Android Studio Emulator**, the app automatically configures API calls to `http://10.0.2.2:8080/api`.
 
 ---
 
-## 🧪 Testing Summary
+## 🔌 API Endpoints Summary
 
-The project includes **38 comprehensive automated tests** with 100% pass rate:
-- **`FareCalculatorTest`** (21 tests): Parameterized boundary checks, 0s, 1s, 10799s, 10800s, 10801s, 21599s, 21600s, 21601s, null handling, time inversion exceptions.
-- **`BookingServiceTest`** (7 tests): Pessimistic lock verification, vehicle active conflict checks, slot occupied conflict checks, transactional checkout.
-- **`SlotServiceTest`** (4 tests): Slot filtering, status mapping, 404 validation.
-- **`BookingControllerTest`** (5 tests): MockMvc REST endpoint assertions, JSON validations, HTTP status mapping (201, 404, 409).
-- **`SmartParkApplicationTests`** (1 test): Full Spring Boot context initialization.
+| Method | Endpoint | Description | Status Codes |
+|---|---|---|---|
+| `GET` | `/api/slots` | Fetch all 25 parking slots with occupancy info | `200 OK` |
+| `GET` | `/api/slots/available` | Filter only currently vacant parking slots | `200 OK` |
+| `GET` | `/api/slots/{id}` | Get detailed slot info by ID | `200 OK`, `404 Not Found` |
+| `POST` | `/api/bookings` | Create check-in booking (`slotId`, `vehicleNumber`) | `201 Created`, `400 Bad Request`, `409 Conflict` |
+| `GET` | `/api/bookings/active` | List all currently active in-progress bookings | `200 OK` |
+| `GET` | `/api/bookings/{id}` | Get booking details with live accrued fare | `200 OK`, `404 Not Found` |
+| `POST` | `/api/payments/checkout` | Process checkout and release slot (`bookingId`, `paymentMethod`) | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `GET` | `/api/analytics/daily` | Get financial metrics for a specific date (`?date=YYYY-MM-DD`) | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/analytics/summary` | Get lifetime system performance & revenue summary | `200 OK` |
+
+---
+
+## 🧪 Automated Testing Suite
+
+The backend contains **38 automated unit & integration tests** executed with **100% pass rate**:
 
 ```
 [INFO] Results:
@@ -142,20 +177,30 @@ The project includes **38 comprehensive automated tests** with 100% pass rate:
 [INFO] BUILD SUCCESS
 ```
 
+- **`FareCalculatorTest` (21 tests)**: Boundary assertions across 0s, 1s, 10799s, 10800s, 10801s, 21599s, 21600s, 21601s, null arguments, and inverted timestamps.
+- **`BookingServiceTest` (7 tests)**: Concurrency lock isolation, duplicate vehicle conflicts, slot collision handling, and transactional checkout.
+- **`SlotServiceTest` (4 tests)**: Slot filtering, occupancy mapping, and 404 validation.
+- **`BookingControllerTest` (5 tests)**: MockMvc REST endpoint assertions, JSON payloads, and HTTP error mappings (201, 400, 404, 409).
+- **`SmartParkApplicationTests` (1 test)**: Full Spring Boot application context load test.
+
+To execute tests anytime:
+```bash
+cd backend
+.\mvnw.cmd test
+```
+
 ---
 
-## 📖 API Testing Manual (Word Document)
+## 📄 Documentation Reference
 
-All API endpoints can be tested directly without any UI or Postman installation using the included Word document:
-- **File**: `SmartPark_API_Testing_Manual.docx`
-- **Contents**:
-  1. Complete endpoint URLs, HTTP methods, and required headers.
-  2. Desirable request payloads (JSON) and query parameters.
-  3. Expected responses with status codes (`200 OK`, `201 Created`, `400 Bad Request`, `404 Not Found`, `409 Conflict`).
-  4. Edge cases & error handling rules (e.g. duplicate booking, double parking, slot mismatch).
-  5. Ready-to-copy **cURL** and **PowerShell** commands for instant execution.
+For more comprehensive guides, check the `documentation/` directory:
+- [RUN_GUIDE.md](documentation/RUN_GUIDE.md) — Complete execution instructions for Web, Docker, and Android Studio.
+- [SETUP_GUIDE.md](documentation/SETUP_GUIDE.md) — Detailed software prerequisites and troubleshooting guide.
+- [ARCHITECTURE.md](documentation/ARCHITECTURE.md) — Deep dive into DB schema, concurrency locks, and fare calculations.
+- [API_DOCUMENTATION.md](documentation/API_DOCUMENTATION.md) — Detailed payloads, headers, and error schema specifications.
+- **`SmartPark_API_Testing_Manual.docx`** — Ready-to-copy cURL and PowerShell commands for every endpoint.
 
 ---
 
-## 📄 License
-Licensed under Apache 2.0. Built for production-ready smart parking operations.
+## 📜 License
+This project is licensed under the **Apache License 2.0**.
